@@ -27,7 +27,7 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
-    return {"message": "AI Job Aggregator API running 🚀"}
+    return {"message": "Hello, world!"}
 
 @app.get("/jobs/list")
 async def list_jobs(limit: int = 50):
