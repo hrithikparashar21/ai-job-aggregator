@@ -109,3 +109,16 @@ async def upload_cv(user_id: str = Form(None), file: UploadFile = File(...)):
 @app.get("/")
 def root():
     return {"message": "Hello from AI Job Aggregator API"}
+
+@app.post("/jobs/insert-dummy")
+def insert_dummy_job():
+    job = {
+        "title": "Software Engineer",
+        "company": "TechCorp",
+        "location": "Remote",
+        "description": "Work on backend systems with Python and FastAPI.",
+        "url": "https://techcorp.com/jobs/123"
+    }
+    data = supabase.table("jobs").insert(job).execute()
+    return {"inserted": data.data}
+
