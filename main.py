@@ -25,13 +25,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/jobs")
-def get_jobs():
-    if not supabase:
-        return {"error": "Supabase not configured"}
-    
-    data = supabase.table("jobs").select("*").execute()
-    return data.data
 
 @app.get("/jobs/list")
 async def list_jobs(limit: int = 50):
@@ -104,5 +97,13 @@ async def upload_cv(user_id: str = Form(None), file: UploadFile = File(...)):
     res = supabase.table("user_cvs").insert(record).execute()
     if res.get("error"):
         raise HTTPException(status_code=500, detail=str(res["error"]))
+
+    @app.get("/jobs")
+def get_jobs():
+    if not supabase:
+        return {"error": "Supabase not configured"}
+    
+    data = supabase.table("jobs").select("*").execute()
+    return data.data
 
     return {"status": "ok", "parsed_skills": found, "file_url": public_url}
