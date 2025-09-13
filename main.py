@@ -25,9 +25,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
-async def root():
-    return {"message": "Hello, world!"}
+@app.get("/jobs")
+def get_jobs():
+    if not supabase:
+        return {"error": "Supabase not configured"}
+    
+    data = supabase.table("jobs").select("*").execute()
+    return data.data
 
 @app.get("/jobs/list")
 async def list_jobs(limit: int = 50):
