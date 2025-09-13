@@ -26,20 +26,26 @@ app.add_middleware(
 )
 
 
-@app.get("/jobs/list")
+# --------- JOBS ROUTES ---------
+@app.get("/jobs")
 async def list_jobs(limit: int = 50):
+    """Return latest jobs"""
     res = supabase.table("jobs").select("*").order("created_at", {"ascending": False}).limit(limit).execute()
-    if res.get("error"):
-        raise HTTPException(status_code=500, detail=str(res["error"]))
-    return res.get("data", [])
+    if hasattr(res, "error") and res.error:
+        raise HTTPException(status_code=500, detail=str(res.error))
+    return res.data
 
-@app.post("/jobs/add")
+
+@app.post("/jobs")
 async def add_job(job: dict):
+    """Insert a job"""
     res = supabase.table("jobs").insert(job).execute()
-    if res.get("error"):
-        raise HTTPException(status_code=500, detail=str(res["error"]))
-    return {"status": "ok", "inserted": res.get("data")}
+    if hasattr(res, "error") and res.error:
+        raise HTTPException(status_code=500, detail=str(res.error))
+    return {"status": "ok", "inserted": res.data}
 
+
+# --------- CV UPLOAD ROUTE ---------
 @app.post("/cv/upload")
 async def upload_cv(user_id: str = Form(None), file: UploadFile = File(...)):
     # Save uploaded file to temp
@@ -64,26 +70,24 @@ async def upload_cv(user_id: str = Form(None), file: UploadFile = File(...)):
                 text = data.decode("utf-8", errors="ignore")
             except:
                 text = ""
-    except Exception as e:
+    except Exception:
         text = ""
 
     # Simple skill extraction (starter list)
-    SKILLS = ["python","django","flask","sql","postgres","javascript","react","node","aws","docker","kubernetes","java","c++","html","css"]
+    SKILLS = [
+        "python", "django", "flask", "sql", "postgres",
+        "javascript", "react", "node", "aws", "docker",
+        "kubernetes", "java", "c++", "html", "css"
+    ]
     found = [s for s in SKILLS if s in text.lower()]
 
     # Upload raw file to Supabase storage (bucket: 'cvs')
     bucket = supabase.storage().from_("cvs")
     remote_path = f"{uuid.uuid4()}_{file.filename}"
     with open(tmp.name, "rb") as f:
-        upload_resp = bucket.upload(remote_path, f)
-    # Make sure your bucket is public or create signed URL in Prod
-    public_info = bucket.get_public_url(remote_path)
-    public_url = None
-    if isinstance(public_info, dict):
-        public_url = public_info.get("publicURL") or public_info.get("public_url")
-    else:
-        # if library returns object, attempt attribute access
-        public_url = getattr(public_info, "publicURL", None) or getattr(public_info, "public_url", None)
+        bucket.upload(remote_path, f)
+
+    public_url = bucket.get_public_url(remote_path)
 
     # Save parsed CV to DB
     record = {
@@ -95,15 +99,13 @@ async def upload_cv(user_id: str = Form(None), file: UploadFile = File(...)):
         "experience_years": None
     }
     res = supabase.table("user_cvs").insert(record).execute()
-    if res.get("error"):
-        raise HTTPException(status_code=500, detail=str(res["error"]))
-
-@app.get("/jobs")
-def get_jobs():
-    if not supabase:
-        return {"error": "Supabase not configured"}
-    
-    data = supabase.table("jobs").select("*").execute()
-    return data.data
+    if hasattr(res, "error") and res.error:
+        raise HTTPException(status_code=500, detail=str(res.error))
 
     return {"status": "ok", "parsed_skills": found, "file_url": public_url}
+
+
+# --------- ROOT TEST ---------
+@app.get("/")
+def root():
+    return {"message": "Hello from AI Job Aggregator API"}
