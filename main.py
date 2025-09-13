@@ -98,7 +98,7 @@ async def upload_cv(user_id: str = Form(None), file: UploadFile = File(...)):
     if res.get("error"):
         raise HTTPException(status_code=500, detail=str(res["error"]))
 
-    @app.get("/jobs")
+@app.get("/jobs")
 def get_jobs():
     if not supabase:
         return {"error": "Supabase not configured"}
